@@ -1,40 +1,63 @@
-import altair as alt
-import numpy as np
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+from collections import Counter
 
-"""
-# Welcome to Streamlit!
+# Cargar los datos
+@st.cache
+def cargar_datos(filepath):
+    return pd.read_csv(filepath)
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:.
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+# Función de búsqueda
+def buscar_peliculas(df, titulo=None, genero=None, año=None):
+    if titulo:
+        df = df[df['Title'].str.contains(titulo, case=False, na=False)]
+    if genero:
+        df = df[df['Genre'].str.contains(genero, case=False, na=False)]
+    if año:
+        df = df[df['Year'] == año]
+    return df
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+# Visualización de datos
+def visualizar_datos(df_filtrado):
+    # Gráfico de ingresos por año
+    ingresos_filtrados = df_filtrado.groupby('Year')['Revenue (Millions)'].sum()
+    plt.figure(figsize=(12, 6))
+    plt.bar(ingresos_filtrados.index, ingresos_filtrados.values, color='skyblue')
+    plt.title('Ingresos Totales por Año (en millones de dólares)')
+    plt.xlabel('Año')
+    plt.ylabel('Ingresos Totales (Millones de dólares)')
+    plt.grid(True)
+    st.pyplot(plt)
 
-num_points = st.slider("Number of points in spiral", 1, 10000, 1100)
-num_turns = st.slider("Number of turns in spiral", 1, 300, 31)
+    # Tablas de top 20
+    top_20_ingresos = df_filtrado.sort_values(by='Revenue (Millions)', ascending=False).head(20)
+    top_20_rating = df_filtrado.sort_values(by='Rating', ascending=False).head(20)
+    top_20_votos = df_filtrado.sort_values(by='Votes', ascending=False).head(20)
 
-indices = np.linspace(0, 1, num_points)
-theta = 2 * np.pi * num_turns * indices
-radius = indices
+    # Actores más repetidos
+    actores_lista = ','.join(df_filtrado['Actors']).split(',')
+    actores_contados = Counter([actor.strip() for actor in actores_lista])
+    actores_top = actores_contados.most_common(20)
+    actores_top_df = pd.DataFrame(actores_top, columns=['Actor', 'Apariciones'])
 
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
+    # Mostrar tablas
+    st.write("Top 20 Películas por Ingresos", top_20_ingresos)
+    st.write("Top 20 Películas por Rating", top_20_rating)
+    st.write("Top 20 Películas por Votos", top_20_votos)
+    st.write("Actores Más Repetidos", actores_top_df)
 
-df = pd.DataFrame({
-    "x": x,
-    "y": y,
-    "idx": indices,
-    "rand": np.random.randn(num_points),
-})
+# Interfaz de usuario
+def main():
+    st.title("Aplicación de Búsqueda de Películas")
+    filepath = st.text_input("Ingrese el path del archivo CSV de películas:")
+    if filepath:
+        df = cargar_datos(filepath)
+        titulo = st.text_input("Filtrar por título:")
+        genero = st.text_input("Filtrar por género:")
+        año = st.number_input("Filtrar por año:", min_value=1900, max_value=2100, step=1, format="%d")
+        df_filtrado = buscar_peliculas(df, titulo, genero, año)
+        visualizar_datos(df_filtrado)
 
-st.altair_chart(alt.Chart(df, height=700, width=700)
-    .mark_point(filled=True)
-    .encode(
-        x=alt.X("x", axis=None),
-        y=alt.Y("y", axis=None),
-        color=alt.Color("idx", legend=None, scale=alt.Scale()),
-        size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
-    ))
+if __name__ == "__main__":
+    main()
