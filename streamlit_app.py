@@ -5,8 +5,8 @@ from collections import Counter
 
 # Cargar los datos
 @st.cache
-def cargar_datos('IMDB-Movie-Data.csv'):
-    data = pd.read_csv('IMDB-Movie-Data.csv')
+def cargar_datos(filepath):
+    data = pd.read_csv(filepath)
     return data
 
 # Función de búsqueda
