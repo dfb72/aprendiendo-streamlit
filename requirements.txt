@@ -1,5 +1,7 @@
-altair
 pandas
 streamlit
-matplotlib
 openai
+scikit_learn
+requests
+matplotlib
+joblib
